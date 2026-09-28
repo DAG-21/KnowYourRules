@@ -1,0 +1,7 @@
+# Spreadsheet generation (used for research/ deliverables)
+openpyxl
+
+# Document extraction (next step: downloading and parsing government documents)
+requests
+beautifulsoup4
+pypdf
