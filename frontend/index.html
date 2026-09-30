@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>India Traffic Rules Assistant</title>
+<style>
+  :root{
+    --bg:#07070a;
+    --surface:#111116;
+    --surface-2:#17171e;
+    --fg:#f2f1f6;
+    --fg-muted:#8d8b9a;
+    --fg-faint:#5a5865;
+    --red:#ff5a4e;
+    --orange:#ff9a3d;
+    --blue:#3d8bff;
+    --cyan:#5ad1ff;
+    --send:#ff3f9e;
+    --send-2:#7a3dff;
+    color-scheme: dark;
+  }
+  *{ box-sizing:border-box; }
+  html, body{ height:100%; margin:0; }
+  body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  :root{ --navbar-h:52px; }
+
+  .navbar{
+    position:fixed;
+    top:0; left:0; right:0;
+    height:var(--navbar-h);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(7,7,10,0.85);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    border-bottom:1px solid #1c1c24;
+    z-index:100;
+  }
+  .navbar .label{
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.14em;
+    color:var(--fg-faint);
+    text-transform:uppercase;
+  }
+
+  .stage{
+    min-height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-end;
+    gap:20px;
+    padding:calc(var(--navbar-h) + 24px) 16px 32px;
+    background:
+      radial-gradient(60% 50% at 18% 10%, rgba(255,90,78,0.10), transparent 60%),
+      radial-gradient(60% 50% at 82% 90%, rgba(61,139,255,0.12), transparent 60%),
+      var(--bg);
+  }
+
+  .thread{
+    width:100%;
+    max-width:760px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    flex:1 1 auto;
+    padding-top:12px;
+  }
+  .msg{
+    max-width:92%;
+    padding:12px 16px;
+    border-radius:16px;
+    font-size:14.5px;
+    line-height:1.55;
+    animation:rise .28s ease both;
+  }
+  .msg.assistant{
+    align-self:flex-start;
+    background:var(--surface);
+    border:1px solid #232330;
+    color:var(--fg);
+    border-bottom-left-radius:4px;
+  }
+  .msg.user{
+    align-self:flex-end;
+    max-width:75%;
+    background:linear-gradient(135deg, var(--send), var(--send-2));
+    color:#fff;
+    border-bottom-right-radius:4px;
+    white-space:pre-wrap;
+  }
+  .msg.error{
+    align-self:flex-start;
+    background:#2a1418;
+    border:1px solid #5a2430;
+    color:#ffb4bd;
+    border-bottom-left-radius:4px;
+    white-space:pre-wrap;
+  }
+  @keyframes rise{ from{ opacity:0; transform:translateY(6px);} to{ opacity:1; transform:translateY(0);} }
+
+  /* Rendered markdown inside assistant bubbles */
+  .msg.assistant > *:first-child{ margin-top:0; }
+  .msg.assistant > *:last-child{ margin-bottom:0; }
+  .msg.assistant p{ margin:0 0 10px; }
+  .msg.assistant strong{ color:#fff; font-weight:700; }
+  .msg.assistant ul, .msg.assistant ol{ margin:0 0 10px; padding-left:1.3em; }
+  .msg.assistant li{ margin:4px 0; }
+  .msg.assistant li > p{ margin:0; }
+  .msg.assistant h1, .msg.assistant h2, .msg.assistant h3{
+    margin:14px 0 8px;
+    font-size:15px;
+    color:#fff;
+  }
+  .msg.assistant h1:first-child, .msg.assistant h2:first-child, .msg.assistant h3:first-child{ margin-top:0; }
+  .msg.assistant code{
+    background:var(--surface-2);
+    border-radius:4px;
+    padding:1px 5px;
+    font-size:13px;
+  }
+  .msg.assistant a{ color:var(--cyan); }
+
+  .typing{
+    align-self:flex-start;
+    display:flex;
+    gap:4px;
+    padding:14px 16px;
+    background:var(--surface);
+    border:1px solid #232330;
+    border-radius:16px;
+    border-bottom-left-radius:4px;
+  }
+  .typing span{
+    width:6px; height:6px; border-radius:50%;
+    background:var(--fg-muted);
+    animation:bounce 1.2s infinite ease-in-out;
+  }
+  .typing span:nth-child(2){ animation-delay:.15s; }
+  .typing span:nth-child(3){ animation-delay:.3s; }
+  @keyframes bounce{ 0%,60%,100%{ transform:translateY(0); opacity:.5; } 30%{ transform:translateY(-4px); opacity:1; } }
+
+  @property --angle{
+    syntax:'<angle>';
+    inherits:false;
+    initial-value:0deg;
+  }
+
+  .composer{
+    position:relative;
+    isolation:isolate;
+    width:100%;
+    max-width:760px;
+  }
+  .glow, .glow-blur{
+    position:absolute;
+    inset:-3px;
+    border-radius:999px;
+    background:conic-gradient(from var(--angle),
+      transparent 0deg,
+      var(--red) 35deg,
+      var(--orange) 70deg,
+      transparent 130deg,
+      transparent 210deg,
+      var(--blue) 280deg,
+      var(--cyan) 315deg,
+      transparent 360deg);
+    animation:spin 6s linear infinite;
+  }
+  .glow{ z-index:-1; opacity:.95; }
+  .glow-blur{ z-index:-2; filter:blur(18px); opacity:.85; }
+  @keyframes spin{ to{ --angle:360deg; } }
+  @media (prefers-reduced-motion: reduce){
+    .glow, .glow-blur{ animation:none; }
+  }
+
+  .bar{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background:var(--surface);
+    border-radius:999px;
+    padding:8px 8px 8px 10px;
+    min-width:0;
+  }
+
+  .icon-btn{
+    flex:0 0 auto;
+    width:34px; height:34px;
+    border-radius:50%;
+    border:1px solid #2a2a35;
+    background:var(--surface-2);
+    color:var(--fg-muted);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+  }
+  .icon-btn:hover{ color:var(--fg); border-color:#3a3a48; }
+
+  .chip{
+    flex:0 0 auto;
+    display:flex; align-items:center; gap:6px;
+    height:34px; padding:0 12px;
+    border-radius:999px;
+    border:1px solid #2a2a35;
+    background:var(--surface-2);
+    color:var(--fg-muted);
+    font-size:13px; font-weight:600;
+    white-space:nowrap;
+    cursor:pointer;
+  }
+  .chip:hover{ color:var(--fg); border-color:#3a3a48; }
+  .chip.voice.listening{
+    color:var(--cyan);
+    border-color:var(--cyan);
+  }
+
+  input#msg{
+    flex:1 1 auto; min-width:0;
+    background:transparent; border:none; outline:none;
+    color:var(--fg); font-size:14.5px;
+    font-family:inherit;
+    padding:0 6px;
+  }
+  input#msg::placeholder{ color:var(--fg-faint); }
+  input#msg:disabled{ opacity:.5; }
+
+  .send-btn{
+    flex:0 0 auto;
+    width:38px; height:38px;
+    border-radius:50%;
+    border:none;
+    background:linear-gradient(135deg, var(--send), var(--send-2));
+    color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    box-shadow:0 4px 14px rgba(255,63,158,0.35);
+  }
+  .send-btn:active{ transform:scale(.94); }
+  .send-btn:disabled{ opacity:.5; cursor:default; }
+
+  .hint{
+    font-size:12px;
+    color:var(--fg-faint);
+    text-align:center;
+  }
+
+  @media (max-width:480px){
+    .chip .chip-label{ display:none; }
+    .chip{ padding:0 10px; }
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+</head>
+<body>
+
+<div class="navbar"><span class="label">India Traffic Rules Assistant</span></div>
+
+<div class="stage">
+  <div class="thread" id="thread">
+    <div class="msg assistant">Ask me about Indian traffic rules, fines, or the documents you need to carry — I'll answer from official government sources. Since rules vary by state, tell me your state, city, or PIN code if I don't already know it.</div>
+  </div>
+
+  <div class="composer">
+    <div class="glow" aria-hidden="true"></div>
+    <div class="glow-blur" aria-hidden="true"></div>
+    <form class="bar" id="bar">
+      <input id="msg" type="text" placeholder="Ask about Indian traffic rules…" autocomplete="off" />
+
+      <button type="button" class="chip voice" id="voiceBtn" title="Voice input (demo only)" aria-label="Voice input">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M12 19v3"/></svg>
+        <span class="chip-label">Voice</span>
+      </button>
+
+      <button type="submit" class="send-btn" aria-label="Send" id="sendBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M3 11.5 21 3l-7.5 18-2.7-7.3L3 11.5Z"/></svg>
+      </button>
+    </form>
+  </div>
+
+  <div class="hint">Answers only from the indexed government documents — it will say so if something isn't covered.</div>
+</div>
+
+<script>
+  const thread = document.getElementById('thread');
+  const bar = document.getElementById('bar');
+  const input = document.getElementById('msg');
+  const sendBtn = document.getElementById('sendBtn');
+  const voiceBtn = document.getElementById('voiceBtn');
+
+  // Fresh session per page load, on purpose: the visible chat thread also resets on
+  // reload (we don't persist message history), so the backend's memory of your location
+  // needs to reset with it - otherwise a reload looks like a new conversation but the
+  // bot silently still "remembers" an old location from before, and skips asking.
+  const sessionId = crypto.randomUUID();
+
+  marked.setOptions({ breaks: true });
+
+  voiceBtn.addEventListener('click', () => {
+    voiceBtn.classList.add('listening');
+    voiceBtn.querySelector('.chip-label').textContent = 'Listening…';
+    setTimeout(() => {
+      voiceBtn.classList.remove('listening');
+      voiceBtn.querySelector('.chip-label').textContent = 'Voice';
+    }, 1600);
+  });
+
+  function addMessage(text, role){
+    const el = document.createElement('div');
+    el.className = 'msg ' + role;
+    if(role === 'assistant'){
+      el.innerHTML = marked.parse(text);
+    } else {
+      el.textContent = text;
+    }
+    thread.appendChild(el);
+    el.scrollIntoView({ behavior:'smooth', block:'end' });
+    return el;
+  }
+
+  function addTyping(){
+    const el = document.createElement('div');
+    el.className = 'typing';
+    el.innerHTML = '<span></span><span></span><span></span>';
+    thread.appendChild(el);
+    el.scrollIntoView({ behavior:'smooth', block:'end' });
+    return el;
+  }
+
+  bar.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if(!text) return;
+
+    addMessage(text, 'user');
+    input.value = '';
+    input.disabled = true;
+    sendBtn.disabled = true;
+
+    const typingEl = addTyping();
+
+    try{
+      const resp = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, session_id: sessionId })
+      });
+      typingEl.remove();
+      if(!resp.ok){
+        const errText = await resp.text().catch(() => '');
+        addMessage(`Backend error (${resp.status}). ${errText}`.trim(), 'error');
+      } else {
+        const data = await resp.json();
+        addMessage(data.response, 'assistant');
+      }
+    } catch(err){
+      typingEl.remove();
+      addMessage('Could not reach the backend. Is the server running?', 'error');
+    } finally {
+      input.disabled = false;
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  });
+</script>
+</body>
+</html>

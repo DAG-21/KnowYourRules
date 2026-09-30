@@ -8,6 +8,17 @@ __pycache__/
 .venv/
 venv/
 
+# Local portable binaries (Poppler, etc.) - large redistributables, not project source
+tools/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Chroma / FAISS local vector store persistence
+chroma_langchain_db/
+*.faiss
+*.pkl
+
 # Environment variables / secrets
 .env
 .env.local

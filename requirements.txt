@@ -1,7 +1,43 @@
 # Spreadsheet generation (used for research/ deliverables)
 openpyxl
 
-# Document extraction (next step: downloading and parsing government documents)
+# Document extraction (scripts/extract_documents.py)
 requests
 beautifulsoup4
 pypdf
+
+# Notebook execution
+jupyter
+ipykernel
+nbconvert
+
+# Core (matches reference/ notebooks)
+python-dotenv
+numpy
+tiktoken
+huggingface_hub
+transformers
+
+# Backend API
+fastapi
+uvicorn[standard]
+
+# LangChain ecosystem
+langchain
+langchain-community
+langchain-core
+langchain-text-splitters
+langchain-experimental
+langchain-ollama
+langchain-chroma
+langchain-groq
+langgraph
+
+# Vector store / retrieval
+faiss-cpu
+rank_bm25
+sentence-transformers
+
+# PDF loading with OCR (UnstructuredPDFLoader, hi_res strategy)
+unstructured[pdf]
+unstructured-inference  # layout detection model for hi_res strategy - not pulled in by unstructured[pdf] alone

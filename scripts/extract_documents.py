@@ -351,9 +351,10 @@ def main():
             args.overwrite, args.delay, args.dry_run,
         )
         all_entries.extend(entries)
-
-    if not args.dry_run and all_entries:
-        write_manifest(Path(args.manifest), all_entries)
+        # Written after every row (not just at the end) so an interrupted run
+        # still leaves an accurate manifest for whatever it managed to fetch.
+        if not args.dry_run and entries:
+            write_manifest(Path(args.manifest), entries)
 
     downloaded = sum(1 for e in all_entries if not e["error"])
     skipped = sum(1 for e in all_entries if e["error"] == "skipped_existing")
