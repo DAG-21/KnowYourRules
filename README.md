@@ -1,28 +1,37 @@
-# India Traffic Rules RAG Chatbot
+# KnowYourRules
 
 A RAG-backed chatbot for looking up Indian traffic rules and regulations, sourced from
-official government documents across the full regulatory hierarchy: central (MoRTH,
-statutory/technical bodies), state transport departments and road-safety authorities,
-union territories, city/local traffic police, and district-level orders.
-
-This is an independent project, separate from any other repository in this workspace.
+official government documents: the Central Motor Vehicles Act/Rules, state Acts/Rules,
+union territories, and city/local traffic police.
 
 ## Status
 
-Research phase complete. See [`research/`](research/) for the compiled inventory of
-official government sources:
+Working end-to-end: document extraction, chunking, embedding, retrieval, and a
+location-aware chat UI backed by a real FastAPI server.
 
-- `india_traffic_document_links.xlsx` — 125 verified/discovered document-source links
-  across the hierarchy, with a verification status per row (live-confirmed, needs
-  special TLS handling, unconfirmed, or excluded-transactional). This is the working
-  target list for the document-extraction step.
-- `india_traffic_gov_websites.xlsx` — earlier, superseded site-level inventory (kept
-  for reference).
+- **Research** (`research/`) — 126 verified/discovered official government document
+  sources across the full regulatory hierarchy.
+- **Extraction** (`scripts/extract_documents.py`) — downloads verified sources into
+  `data/raw/full_extraction/`, with full provenance in `manifest.csv`.
+- **Indexing** (`backend/build_index.py`) — extracts, chunks, and embeds (Ollama
+  `nomic-embed-text`) a curated text-native subset into a persisted Chroma vector store,
+  tagged with correct per-document state metadata for state-aware retrieval.
+- **Backend** (`backend/server.py`) — FastAPI app wrapping the RAG chain (Groq LLM,
+  strict grounding prompt). Tracks per-session location and a short conversation history
+  so follow-up questions ("what's the fine for that?") resolve correctly, and asks for
+  the user's state/city/PIN code when it's needed and not yet known.
+- **Frontend** (`frontend/index.html`) — single-page chat UI served by the backend.
+- **Reference** (`reference/`) — the course notebooks this project's LangChain/Groq/Ollama
+  patterns are built from.
+- **Build notebook** (`notebooks/rag_pipeline.ipynb`) — phase-by-phase development and
+  validation of the pipeline (OCR experiments, translation, chunking, embedding,
+  retrieval, generation).
 
-Not yet started: document downloading/extraction, chunking, embeddings, vector store,
-retrieval, generation, and the chatbot frontend. Architecture choices for those stages
-(vector DB, embedding model, LLM provider, backend/frontend framework) haven't been
-made yet.
+Currently indexed: Central Motor Vehicles Act/Rules, Gujarat, Delhi. Mizoram, Himachal
+Pradesh, Andaman & Nicobar, and Haryana are extracted but not yet embedded - see
+`backend/build_index.py`'s scope list to top up the index. The system explicitly tells
+the user when their state isn't covered rather than presenting another state's rules as
+if they applied.
 
 ## Setup
 
@@ -32,20 +41,27 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+Copy `.env.example` to `.env` and fill in `GROQ_API_KEY`. Requires
+[Ollama](https://ollama.com) running locally with `nomic-embed-text` pulled
+(`ollama pull nomic-embed-text`).
+
+## Running it
+
+```bash
+uvicorn backend.server:app --reload --port 8000
+```
+
+Then open http://localhost:8000.
+
 ## Project structure
 
 ```
-GenAI/
-├── research/        # Government source inventories (spreadsheets)
-├── data/
-│   ├── raw/          # Downloaded source documents (gitignored - regenerable)
-│   └── processed/    # Cleaned/chunked output (gitignored - regenerable)
-├── requirements.txt
-└── README.md
+├── research/       # Government source inventory (spreadsheets)
+├── scripts/        # Document extraction (scraping) script
+├── backend/        # FastAPI server + vector store indexing script
+├── frontend/       # Chat UI (served by the backend)
+├── notebooks/      # Phase-by-phase pipeline build/validation notebook
+├── reference/      # Reference course notebooks (LangChain/Groq/Ollama patterns)
+├── data/           # Downloaded documents + Chroma vector store (gitignored)
+└── requirements.txt
 ```
-
-## Next step
-
-Build the document-extraction script that walks the "Verified - Live" rows in
-`research/india_traffic_document_links.xlsx` and downloads the source PDFs/pages into
-`data/raw/`.
